@@ -1,11 +1,15 @@
-<div align="center">
+# Slingshot
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+A webcam-based bubble shooter game powered by hand tracking and Gemini AI. Use your hands to aim and shoot bubbles, match colors, and clear the board!
 
-  <h1>Built with AI Studio</h2>
+## Features
+- **Hand Tracking Controls**: Pinch to aim, release to shoot.
+- **Multiple Difficulties**: Easy (casual), Medium, and Hard (fast-paced).
+- **Power-ups**: Bombs, Freeze, and Rainbow bubbles.
+- **Responsive Design**: Works on desktop and mobile devices.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## Developer
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+**Developed by Eleandro**
 
-</div>
+[LinkedIn Profile](https://www.linkedin.com/in/eleandro-mangrich)
