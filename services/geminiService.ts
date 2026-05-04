@@ -9,10 +9,10 @@ import { StrategicHint, AiResponse, DebugInfo } from "../types";
 // Initialize Gemini Client
 let ai: GoogleGenAI | null = null;
 
-if (process.env.API_KEY) {
-    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+if (process.env.GEMINI_API_KEY) {
+    ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 } else {
-    console.error("API_KEY is missing from environment variables.");
+    console.error("GEMINI_API_KEY is missing from environment variables.");
 }
 
 const MODEL_NAME = "gemini-3-flash-preview";

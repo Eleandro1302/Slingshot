@@ -1,4 +1,4 @@
-# Gemini Slingshot 🎯
+# PrismShot 🌈🚀
 
 > An immersive, gesture-controlled arcade experience powered by Computer Vision and Generative AI.
 
@@ -10,17 +10,19 @@
 
 ## 📋 Overview
 
-**Gemini Slingshot** is a next-generation web game that transforms your webcam into a game controller. Using **MediaPipe** for real-time hand tracking, players can physically pinch and pull a virtual slingshot to launch bubbles. The application leverages **Google's Gemini 3 Flash** model to analyze the game board and provide strategic aim assistance.
+**PrismShot** is a next-generation web game that transforms your webcam into a game controller. Using **MediaPipe** for real-time hand tracking, players can physically pinch and pull a virtual cannon to launch bubbles. The application leverages **Google's Gemini 3 Flash** model to analyze the game board and provide strategic aim assistance.
 
 Developed with a focus on performance and aesthetics, the game features a polished UI, particle effects, multiple visual themes, and a responsive design suitable for both desktop and mobile devices.
+
+---
 
 ## ✨ Key Features
 
 ### 🎮 Gameplay Mechanics
-- **Gesture Control**: Control the slingshot entirely with hand movements using your webcam.
-  - **Pinch**: Grab the projectile.
-  - **Drag**: Pull back to aim and power up.
-  - **Release**: Open your fingers to shoot.
+- **Gesture Control**: Control the cannon entirely with hand movements using your webcam.
+  - **Pinch**: Charge the cannon.
+  - **Drag**: Move your hand to aim.
+  - **Release**: Open your fingers to fire.
 - **Dynamic Physics**: Realistic projectile trajectory, collision detection, and bubble clustering.
 - **Power-ups**:
   - 💣 **Bomb**: Explodes surrounding bubbles.
@@ -28,15 +30,17 @@ Developed with a focus on performance and aesthetics, the game features a polish
   - 🌈 **Wildcard**: Matches with any color.
 
 ### 🎨 Customization & Progression
-- **Visual Themes**: Choose from 6 distinct slingshot designs, including Classic, Neon, Cyber, Gold, Wood, and the exclusive **Hook** style.
+- **Visual Themes**: Choose from 6 distinct cannon designs, including Classic, Neon, Cyber, Gold, Wood, and the high-tech **Prism** style.
 - **Difficulty Modes**:
-  - **Easy**: Casual play with no auto-descent.
-  - **Medium**: Balanced challenge.
+  - **Easy**: Casual play with 5 colors and no auto-descent.
+  - **Medium**: Balanced challenge with 6 colors.
   - **Hard**: Fast-paced action for skilled players.
 - **Dynamic Scoring**: Material Design color-coded scoring system with combo multipliers.
 
 ### 🤖 AI Integration
 - **Strategic Copilot**: Uses Google Gemini 3 Flash to analyze the board state visually and suggest optimal shots based on cluster value and danger levels.
+
+---
 
 ## 🛠️ Tech Stack
 
@@ -45,6 +49,9 @@ Developed with a focus on performance and aesthetics, the game features a polish
 - **Computer Vision**: Google MediaPipe Hands
 - **Generative AI**: Google GenAI SDK (`@google/genai`)
 - **Icons**: Lucide React
+- **Monetization**: Google AdSense Ready
+
+---
 
 ## 🚀 Getting Started
 
@@ -57,8 +64,8 @@ Developed with a focus on performance and aesthetics, the game features a polish
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-username/gemini-slingshot.git
-   cd gemini-slingshot
+   git clone https://github.com/your-username/prismshot.git
+   cd prismshot
    ```
 
 2. **Install dependencies**
@@ -69,14 +76,16 @@ Developed with a focus on performance and aesthetics, the game features a polish
 3. **Configure Environment**
    Create a `.env` file in the root directory and add your API key:
    ```env
-   API_KEY=your_google_gemini_api_key_here
+   GEMINI_API_KEY=your_google_gemini_api_key_here
    ```
 
 4. **Run the application**
    ```bash
-   npm start
+   npm run dev
    ```
    Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+
+---
 
 ## 🕹️ How to Play
 
@@ -84,10 +93,12 @@ Developed with a focus on performance and aesthetics, the game features a polish
 2. **Calibrate**: Stand back slightly so your hand is clearly visible.
 3. **Aim & Shoot**:
    - Raise your hand.
-   - Touch your **Index Finger** to your **Thumb** to "pinch" the ball.
+   - Touch your **Index Finger** to your **Thumb** to "pinch" and charge the cannon.
    - Move your hand to aim.
-   - Separate your fingers to release the shot.
+   - Separate your fingers to fire the shot.
 4. **Objective**: Match 3 or more bubbles of the same color to clear them. Don't let the bubbles reach the bottom line!
+
+---
 
 ## 👨‍💻 Developer
 

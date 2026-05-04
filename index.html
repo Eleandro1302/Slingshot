@@ -2,8 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Slingshot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <title>PrismShot</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- MediaPipe Dependencies -->
@@ -11,12 +11,18 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
     <style>
-      body {
+      html, body {
+        height: 100%;
         margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      body {
         background-color: #121212; /* Material Dark Background */
         color: #e3e3e3;
-        overflow: hidden;
         font-family: 'Roboto', sans-serif;
       }
       canvas {
@@ -24,7 +30,7 @@
       }
       video {
         transform: scaleX(-1); /* Mirror effect for natural feel */
-        display: none; /* We draw video to canvas, so hide original */
+        /* opacity: 0 instead of display: none for cross-browser compatibility */
       }
     </style>
   <script type="importmap">
@@ -38,8 +44,10 @@
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
   <body>
     <div id="root"></div>
-  </body>
+  <script type="module" src="/index.tsx"></script>
+</body>
 </html>

@@ -4,12 +4,12 @@
 */
 
 import React from 'react';
-import GeminiSlingshot from './components/GeminiSlingshot';
+import PrismShot from './components/PrismShot';
 
 const App: React.FC = () => {
   return (
     <div className="w-full h-full">
-      <GeminiSlingshot />
+      <PrismShot />
     </div>
   );
 };
