@@ -8,7 +8,8 @@ import { Point, Bubble, Particle, BubbleColor, PowerUpType, StrategicHint, AiRes
 import { Loader2, Trophy, Play, MousePointerClick, Monitor, Zap, Shield, Skull, RotateCcw, Target, Menu as MenuIcon, Crosshair, Snowflake, Flame, Rainbow, Linkedin, HelpCircle, Hand, ArrowRight, X, Sparkles, Pause, Palette, Anchor, AlertCircle, Camera as CameraIcon, BrainCircuit, Info } from 'lucide-react';
 import { getStrategicHint, TargetCandidate } from '../services/geminiService';
 
-const PINCH_THRESHOLD = 0.05;
+const PINCH_GRAB_THRESHOLD = 0.045; 
+const PINCH_RELEASE_THRESHOLD = 0.085; 
 const GRAVITY = 0.0; 
 const FRICTION = 0.998; 
 const PARTICLE_GRAVITY = 0.15; // Gravity for particles (fireworks)
@@ -189,6 +190,8 @@ const PrismShot: React.FC = () => {
   const flightStartTime = useRef<number>(0);
   const smoothedHandPosRef = useRef<Point | null>(null);
   const smoothedPinchDistRef = useRef<number>(1.0);
+  const handLostFramesRef = useRef<number>(0); // Buffer for missing hand tracking
+  const MAX_LOST_FRAMES = 5; // Allow 5 frames of lost tracking before releasing
   const recoilRef = useRef<number>(0); // Added for cannon recoil animation
   const bubbles = useRef<Bubble[]>([]);
   const particles = useRef<Particle[]>([]);
@@ -199,6 +202,7 @@ const PrismShot: React.FC = () => {
   
   const freezeUntilRef = useRef<number>(0);
   const selectedColorRef = useRef<BubbleColor>('red');
+  const nextColorRef = useRef<BubbleColor>('blue');
   const gameStateRef = useRef<'MENU' | 'PLAYING' | 'GAMEOVER' | 'WIN' | 'PAUSED'>('MENU');
   const difficultyRef = useRef<Difficulty>('medium');
   const handleDesignRef = useRef<HandleDesign>('cannon'); 
@@ -208,6 +212,7 @@ const PrismShot: React.FC = () => {
   const [cameraRetryCount, setCameraRetryCount] = useState(0);
   const [score, setScore] = useState(0);
   const [selectedColor, setSelectedColor] = useState<BubbleColor>('red');
+  const [nextColor, setNextColor] = useState<BubbleColor>('blue');
   const [availableColors, setAvailableColors] = useState<BubbleColor[]>([]);
   const [gameState, setGameState] = useState<'MENU' | 'PLAYING' | 'GAMEOVER' | 'WIN' | 'PAUSED'>('MENU');
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
@@ -234,6 +239,7 @@ const PrismShot: React.FC = () => {
   }, []);
 
   useEffect(() => { selectedColorRef.current = selectedColor; }, [selectedColor]);
+  useEffect(() => { nextColorRef.current = nextColor; }, [nextColor]);
   useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
   useEffect(() => { difficultyRef.current = difficulty; }, [difficulty]);
   useEffect(() => { handleDesignRef.current = handleDesign; }, [handleDesign]);
@@ -325,11 +331,28 @@ const PrismShot: React.FC = () => {
   const updateAvailableColors = () => {
     const activeColors = new Set<BubbleColor>();
     bubbles.current.forEach(b => { if (b.active && b.color !== 'rainbow') activeColors.add(b.color); });
-    setAvailableColors(Array.from(activeColors));
-    if (!activeColors.has(selectedColorRef.current) && activeColors.size > 0) {
-        const next = Array.from(activeColors)[0];
-        setSelectedColor(next); selectedColorRef.current = next; 
+    const colorsArray = Array.from(activeColors);
+    setAvailableColors(colorsArray);
+    
+    // Auto-correct if current or next color are no longer on the board
+    if (colorsArray.length > 0) {
+        if (!activeColors.has(selectedColorRef.current)) {
+            const next = colorsArray[Math.floor(Math.random() * colorsArray.length)];
+            setSelectedColor(next); selectedColorRef.current = next; 
+        }
+        if (!activeColors.has(nextColorRef.current)) {
+            const next = colorsArray[Math.floor(Math.random() * colorsArray.length)];
+            setNextColor(next); nextColorRef.current = next;
+        }
     }
+  };
+
+  const getNextRandomColor = () => {
+    const activeColors = new Set<BubbleColor>();
+    bubbles.current.forEach(b => { if (b.active && b.color !== 'rainbow') activeColors.add(b.color); });
+    const colorsArray = Array.from(activeColors);
+    if (colorsArray.length === 0) return 'red';
+    return colorsArray[Math.floor(Math.random() * colorsArray.length)];
   };
 
   const isNeighbor = (a: Bubble, b: Bubble) => {
@@ -466,7 +489,15 @@ const PrismShot: React.FC = () => {
         if (Math.random() > 0.1) newBubbles.push(spawnBubble(r, c, width));
       }
     }
-    bubbles.current = newBubbles; updateAvailableColors();
+    bubbles.current = newBubbles; 
+    updateAvailableColors();
+    
+    // Initialize ammo
+    const activeC = Array.from(new Set(newBubbles.map(b => b.color).filter(c => c !== 'rainbow')));
+    const c1 = activeC[Math.floor(Math.random() * activeC.length)] || 'red';
+    const c2 = activeC[Math.floor(Math.random() * activeC.length)] || 'blue';
+    setSelectedColor(c1); selectedColorRef.current = c1;
+    setNextColor(c2); nextColorRef.current = c2;
   };
 
   const addNewRow = (canvasWidth: number) => {
@@ -606,12 +637,28 @@ const PrismShot: React.FC = () => {
         grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
         grad.addColorStop(0, '#ff9999'); grad.addColorStop(0.2, '#ffff99'); grad.addColorStop(0.4, '#99ff99'); grad.addColorStop(0.6, '#99ffff'); grad.addColorStop(0.8, '#9999ff'); grad.addColorStop(1, '#ff99ff');
     } else {
-        const baseColor = config.hex; grad = ctx.createRadialGradient(x - radius * 0.3, y - radius * 0.3, radius * 0.1, x, y, radius);
-        grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.2, baseColor); grad.addColorStop(1, adjustColor(baseColor, -60)); 
+        const baseColor = config.hex; grad = ctx.createRadialGradient(x - radius * 0.3, y - radius * 0.3, radius * 0.05, x, y, radius);
+        grad.addColorStop(0, '#ffffff'); 
+        grad.addColorStop(0.1, '#ffffff');
+        grad.addColorStop(0.4, baseColor); 
+        grad.addColorStop(1, adjustColor(baseColor, -80)); 
     }
     ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fillStyle = grad; ctx.fill();
-    ctx.strokeStyle = colorKey === 'rainbow' ? 'white' : adjustColor(config.hex, -80); ctx.lineWidth = 1; ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(x - radius * 0.3, y - radius * 0.35, radius * 0.25, radius * 0.15, Math.PI / 4, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255, 255, 255, 0.3)'; ctx.fill();
+    ctx.strokeStyle = colorKey === 'rainbow' ? 'white' : 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1.5; ctx.stroke();
+    
+    // Gloss highlight
+    ctx.beginPath(); 
+    ctx.ellipse(x - radius * 0.35, y - radius * 0.4, radius * 0.3, radius * 0.15, Math.PI / 4, 0, Math.PI * 2); 
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'; 
+    ctx.fill();
+    
+    // Inner shadow for depth
+    ctx.beginPath();
+    ctx.arc(x + radius * 0.2, y + radius * 0.2, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
     if (powerUp) {
         ctx.save();
         ctx.font = `${radius}px serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -707,31 +754,46 @@ const PrismShot: React.FC = () => {
         const rawHandPos = { x: (idxTip.x * canvas.width + thumbTip.x * canvas.width) / 2, y: (idxTip.y * canvas.height + thumbTip.y * canvas.height) / 2 };
         const dx = idxTip.x - thumbTip.x; const dy = idxTip.y - thumbTip.y; const rawPinchDist = Math.sqrt(dx * dx + dy * dy);
         
-        const SMOOTHING = 0.25; // 0.25 gives strong smoothing against tremors
+        // Increased smoothing for hand movement (0.2 is more stable than 0.25)
+        const SMOOTHING = 0.22; 
         if (!smoothedHandPosRef.current) {
             smoothedHandPosRef.current = rawHandPos;
             smoothedPinchDistRef.current = rawPinchDist;
         } else {
+            // Adaptive smoothing: if movement is very small (tremor), smooth MORE
+            const distChanged = Math.sqrt(Math.pow(rawHandPos.x - smoothedHandPosRef.current.x, 2) + Math.pow(rawHandPos.y - smoothedHandPosRef.current.y, 2));
+            const adaptiveSmoothing = distChanged < 10 ? 0.12 : SMOOTHING;
+
             smoothedHandPosRef.current = {
-                x: smoothedHandPosRef.current.x + (rawHandPos.x - smoothedHandPosRef.current.x) * SMOOTHING,
-                y: smoothedHandPosRef.current.y + (rawHandPos.y - smoothedHandPosRef.current.y) * SMOOTHING
+                x: smoothedHandPosRef.current.x + (rawHandPos.x - smoothedHandPosRef.current.x) * adaptiveSmoothing,
+                y: smoothedHandPosRef.current.y + (rawHandPos.y - smoothedHandPosRef.current.y) * adaptiveSmoothing
             };
-            smoothedPinchDistRef.current = smoothedPinchDistRef.current + (rawPinchDist - smoothedPinchDistRef.current) * SMOOTHING;
+            smoothedPinchDistRef.current = smoothedPinchDistRef.current + (rawPinchDist - smoothedPinchDistRef.current) * 0.2;
         }
         handPos = smoothedHandPosRef.current;
         pinchDist = smoothedPinchDistRef.current;
+        handLostFramesRef.current = 0; // Reset lost counter
 
         if (window.drawConnectors && window.drawLandmarks) {
            window.drawConnectors(ctx, landmarks, window.HAND_CONNECTIONS, {color: '#669df6', lineWidth: 1});
            window.drawLandmarks(ctx, landmarks, {color: '#aecbfa', lineWidth: 1, radius: 2});
         }
-        ctx.beginPath(); ctx.arc(handPos.x, handPos.y, 20, 0, Math.PI * 2); ctx.strokeStyle = pinchDist < PINCH_THRESHOLD ? '#66bb6a' : '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+        const activeThreshold = isPinching.current ? PINCH_RELEASE_THRESHOLD : PINCH_GRAB_THRESHOLD;
+        ctx.beginPath(); ctx.arc(handPos.x, handPos.y, 20, 0, Math.PI * 2); ctx.strokeStyle = pinchDist < activeThreshold ? '#66bb6a' : '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
       } else {
-        smoothedHandPosRef.current = null;
+        // Hand lost - use buffer
+        if (handLostFramesRef.current < MAX_LOST_FRAMES && smoothedHandPosRef.current) {
+            handLostFramesRef.current++;
+            handPos = smoothedHandPosRef.current;
+            pinchDist = smoothedPinchDistRef.current;
+        } else {
+            smoothedHandPosRef.current = null;
+        }
       }
       
       if (gameStateRef.current === 'PLAYING' && !showTutorialRef.current) {
-          if (handPos && pinchDist < PINCH_THRESHOLD && !isFlying.current) {
+          const activeThreshold = isPinching.current ? PINCH_RELEASE_THRESHOLD : PINCH_GRAB_THRESHOLD;
+          if (handPos && pinchDist < activeThreshold && !isFlying.current) {
             const distToBall = Math.sqrt(Math.pow(handPos.x - ballPos.current.x, 2) + Math.pow(handPos.y - ballPos.current.y, 2));
             if (!isPinching.current && distToBall < 100) isPinching.current = true;
             if (isPinching.current) {
@@ -740,7 +802,7 @@ const PrismShot: React.FC = () => {
                 if (dragDist > maxDragDist) { const angle = Math.atan2(dragDy, dragDx); ballPos.current.x = anchorPos.current.x + Math.cos(angle) * maxDragDist; ballPos.current.y = anchorPos.current.y + Math.sin(angle) * maxDragDist; }
             }
           } 
-          else if (isPinching.current && (!handPos || pinchDist >= PINCH_THRESHOLD)) {
+          else if (isPinching.current && (!handPos || pinchDist >= PINCH_RELEASE_THRESHOLD)) {
             isPinching.current = false; const dx = anchorPos.current.x - ballPos.current.x; const dy = anchorPos.current.y - ballPos.current.y; const stretchDist = Math.sqrt(dx*dx + dy*dy);
             if (stretchDist > 30) {
                 isFlying.current = true; playSound('shoot'); flightStartTime.current = performance.now();
@@ -787,7 +849,15 @@ const PrismShot: React.FC = () => {
                         }
                     }
                     const newBubble: Bubble = { id: `${bestRow}-${bestCol}-${Date.now()}`, row: bestRow, col: bestCol, x: bestX, y: bestY, color: selectedColorRef.current, active: true };
-                    bubbles.current.push(newBubble); checkMatches(newBubble); updateAvailableColors();
+                    bubbles.current.push(newBubble); checkMatches(newBubble); 
+                    
+                    // Rotate Ammo
+                    const newCurrent = nextColorRef.current;
+                    const newNext = getNextRandomColor();
+                    setSelectedColor(newCurrent); selectedColorRef.current = newCurrent;
+                    setNextColor(newNext); nextColorRef.current = newNext;
+
+                    updateAvailableColors();
                     ballPos.current = { ...anchorPos.current }; ballVel.current = { x: 0, y: 0 };
                 }
                 if (ballPos.current.y > canvas.height) { isFlying.current = false; ballPos.current = { ...anchorPos.current }; ballVel.current = { x: 0, y: 0 }; }
@@ -963,6 +1033,17 @@ const PrismShot: React.FC = () => {
             };
         }
         drawBubble(ctx, drawPos.x, drawPos.y, bubbleRadius, selectedColorRef.current); 
+        
+        // Draw "Next" bubble preview on board
+        if (!isFlying.current && !isPinching.current) {
+            const nextX = anchorPos.current.x + 60;
+            const nextY = anchorPos.current.y + 40;
+             ctx.save();
+             ctx.globalAlpha = 0.6;
+             drawBubble(ctx, nextX, nextY, bubbleRadius * 0.7, nextColorRef.current);
+             drawMirroredText(ctx, "NEXT", nextX, nextY + 30, 'bold 10px Roboto', '#c4c7c5');
+             ctx.restore();
+        }
         ctx.restore();
       }
 
@@ -1246,10 +1327,41 @@ const PrismShot: React.FC = () => {
               </div>
 
               <div className="flex-1 md:flex-none space-y-0 md:space-y-2 flex flex-col justify-center">
-                  <div className="hidden md:flex items-center justify-between"> <span className="text-xs text-[#c4c7c5] uppercase tracking-wider font-medium">Arsenal</span> <Crosshair className="w-3 h-3 text-[#c4c7c5]" /> </div>
-                  <div className="flex md:grid md:grid-cols-3 gap-3 overflow-x-auto pb-1 md:pb-0 px-1 items-center">
+                  <div className="hidden md:flex items-center justify-between"> 
+                    <span className="text-xs text-[#c4c7c5] uppercase tracking-wider font-medium">Ammo</span> 
+                    <Target className="w-3 h-3 text-[#c4c7c5]" /> 
+                  </div>
+                  <div className="flex items-center gap-4 px-2">
+                    <div className="flex flex-col items-center">
+                      <span className="text-[8px] text-[#c4c7c5] uppercase mb-1">Now</span>
+                      <div className="w-12 h-12 rounded-full border-2 border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] flex items-center justify-center bg-[#2d2d2d]">
+                         <div 
+                            className="w-10 h-10 rounded-full" 
+                            style={{ 
+                                background: `radial-gradient(circle at 30% 30%, #ffffff 0%, ${COLOR_CONFIG[selectedColor].hex} 40%, ${adjustColor(COLOR_CONFIG[selectedColor].hex, -60)} 100%)` 
+                            }} 
+                         />
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-center opacity-60">
+                      <span className="text-[8px] text-[#c4c7c5] uppercase mb-1">Next</span>
+                      <div className="w-10 h-10 rounded-full border border-dashed border-[#444746] flex items-center justify-center bg-[#2d2d2d]">
+                         <div 
+                            className="w-8 h-8 rounded-full" 
+                            style={{ 
+                                background: `radial-gradient(circle at 30% 30%, #ffffff 0%, ${COLOR_CONFIG[nextColor].hex} 40%, ${adjustColor(COLOR_CONFIG[nextColor].hex, -60)} 100%)` 
+                            }} 
+                         />
+                      </div>
+                    </div>
+                  </div>
+              </div>
+
+              <div className="flex-1 md:flex-none space-y-0 md:space-y-2 flex flex-col justify-center">
+                  <div className="hidden md:flex items-center justify-between"> <span className="text-xs text-[#c4c7c5] uppercase tracking-wider font-medium">Selection</span> <Palette className="w-3 h-3 text-[#c4c7c5]" /> </div>
+                  <div className="flex md:grid md:grid-cols-3 gap-2 overflow-x-auto pb-1 md:pb-0 px-1 items-center">
                       {availableColors.length === 0 ? ( 
-                          <p className="col-span-3 text-center text-xs text-gray-500 py-4 italic whitespace-nowrap">No ammo</p> 
+                          <p className="col-span-3 text-center text-xs text-gray-500 py-4 italic whitespace-nowrap">Empty</p> 
                       ) : ( 
                           COLOR_KEYS.slice(0, DIFFICULTY_SETTINGS[difficulty].maxColors).map(color => { 
                               const isAvailable = availableColors.includes(color); 
@@ -1260,10 +1372,18 @@ const PrismShot: React.FC = () => {
                                       key={color} 
                                       disabled={!isAvailable} 
                                       onClick={() => { if(isAvailable) { playSound('click'); setSelectedColor(color); } }} 
-                                      className={`aspect-square rounded-xl flex items-center justify-center transition-all duration-200 relative shrink-0 ${!isAvailable ? 'opacity-20 cursor-not-allowed bg-[#2d2d2d]' : 'hover:scale-105'} ${isSelected ? 'ring-2 ring-white z-10 scale-105 w-10 h-10 md:w-auto md:h-auto' : 'border border-transparent w-8 h-8 md:w-auto md:h-auto'}`} 
-                                      style={{ backgroundColor: isAvailable ? '#2d2d2d' : undefined, borderColor: isSelected ? 'white' : '#444746' }}
+                                      className={`aspect-square rounded-lg flex items-center justify-center transition-all duration-200 relative shrink-0 ${!isAvailable ? 'opacity-20 cursor-not-allowed bg-[#2d2d2d]' : 'hover:scale-110 shadow-lg'} ${isSelected ? 'ring-2 ring-[#42a5f5] z-10 scale-110 w-10 h-10 md:w-full' : 'border border-[#444746] w-8 h-8 md:w-full'}`} 
+                                      style={{ backgroundColor: '#262626' }}
                                   > 
-                                      {isAvailable && ( <div className="w-full h-full rounded-full transform scale-75" style={{ background: config.hex }} /> )} 
+                                      {isAvailable && ( 
+                                        <div 
+                                          className="w-full h-full rounded-full transform scale-75" 
+                                          style={{ 
+                                            background: `radial-gradient(circle at 30% 30%, #ffffff 0%, ${config.hex} 40%, ${adjustColor(config.hex, -60)} 100%)`,
+                                            boxShadow: isSelected ? `0 0 10px ${config.hex}` : 'none'
+                                          }} 
+                                        /> 
+                                      )} 
                                   </button> 
                               ) 
                           }) 
