@@ -8,8 +8,8 @@ import { Point, Bubble, Particle, BubbleColor, PowerUpType, StrategicHint, AiRes
 import { Loader2, Trophy, Play, MousePointerClick, Monitor, Zap, Shield, Skull, RotateCcw, Target, Menu as MenuIcon, Crosshair, Snowflake, Flame, Rainbow, Linkedin, HelpCircle, Hand, ArrowRight, X, Sparkles, Pause, Palette, Anchor, AlertCircle, Camera as CameraIcon, BrainCircuit, Info } from 'lucide-react';
 import { getStrategicHint, TargetCandidate } from '../services/geminiService';
 
-const PINCH_GRAB_THRESHOLD = 0.045; 
-const PINCH_RELEASE_THRESHOLD = 0.085; 
+const PINCH_GRAB_THRESHOLD = 0.06; 
+const PINCH_RELEASE_THRESHOLD = 0.1; 
 const GRAVITY = 0.0; 
 const FRICTION = 0.998; 
 const PARTICLE_GRAVITY = 0.15; // Gravity for particles (fireworks)
@@ -207,9 +207,16 @@ const PrismShot: React.FC = () => {
   const difficultyRef = useRef<Difficulty>('medium');
   const handleDesignRef = useRef<HandleDesign>('cannon'); 
   
-  const [loading, setLoading] = useState(true);
+  const [playMode, setPlayMode] = useState<'IA' | 'MANUAL' | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraRetryCount, setCameraRetryCount] = useState(0);
+  const [debugInfo, setDebugInfo] = useState<string>("");
+  const [fps, setFps] = useState(0);
+  const frameCountRef = useRef(0);
+  const lastFpsUpdateRef = useRef(0);
+  const onResultsCalledRef = useRef(false);
   const [score, setScore] = useState(0);
   const [selectedColor, setSelectedColor] = useState<BubbleColor>('red');
   const [nextColor, setNextColor] = useState<BubbleColor>('blue');
@@ -718,8 +725,18 @@ const PrismShot: React.FC = () => {
     let camera: any = null; let hands: any = null;
 
     const onResults = (results: any) => {
+      onResultsCalledRef.current = true;
       if (isUnmounted || !canvas || !ctx || !fxCtx) return;
       setLoading(false);
+
+      // Simple FPS counter
+      frameCountRef.current++;
+      const nowTime = performance.now();
+      if (nowTime - lastFpsUpdateRef.current > 1000) {
+          setFps(Math.round((frameCountRef.current * 1000) / (nowTime - lastFpsUpdateRef.current)));
+          frameCountRef.current = 0;
+          lastFpsUpdateRef.current = nowTime;
+      }
 
       ctx.save();
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -762,24 +779,138 @@ const PrismShot: React.FC = () => {
         } else {
             // Adaptive smoothing: if movement is very small (tremor), smooth MORE
             const distChanged = Math.sqrt(Math.pow(rawHandPos.x - smoothedHandPosRef.current.x, 2) + Math.pow(rawHandPos.y - smoothedHandPosRef.current.y, 2));
-            const adaptiveSmoothing = distChanged < 10 ? 0.12 : SMOOTHING;
-
-            smoothedHandPosRef.current = {
-                x: smoothedHandPosRef.current.x + (rawHandPos.x - smoothedHandPosRef.current.x) * adaptiveSmoothing,
-                y: smoothedHandPosRef.current.y + (rawHandPos.y - smoothedHandPosRef.current.y) * adaptiveSmoothing
-            };
+            
+            let smoothingFactor = SMOOTHING;
+            // If movement is tiny, increase smoothing
+            if (distChanged < 15) {
+                smoothingFactor = 0.1; 
+            }
+            // Deadzone: if movement is practically non-existent, don't update
+            if (distChanged < 1.5 && isPinching.current) {
+                // Keep old position
+            } else {
+                smoothedHandPosRef.current = {
+                    x: smoothedHandPosRef.current.x + (rawHandPos.x - smoothedHandPosRef.current.x) * smoothingFactor,
+                    y: smoothedHandPosRef.current.y + (rawHandPos.y - smoothedHandPosRef.current.y) * smoothingFactor
+                };
+            }
             smoothedPinchDistRef.current = smoothedPinchDistRef.current + (rawPinchDist - smoothedPinchDistRef.current) * 0.2;
         }
+        
         handPos = smoothedHandPosRef.current;
         pinchDist = smoothedPinchDistRef.current;
         handLostFramesRef.current = 0; // Reset lost counter
 
-        if (window.drawConnectors && window.drawLandmarks) {
-           window.drawConnectors(ctx, landmarks, window.HAND_CONNECTIONS, {color: '#669df6', lineWidth: 1});
-           window.drawLandmarks(ctx, landmarks, {color: '#aecbfa', lineWidth: 1, radius: 2});
+        if (landmarks) {
+           ctx.save();
+           
+           // Correct for mirrored canvas in calculations if we were doing screen-space
+           // But landmarks are already relative 0-1 of the frame drawn to canvas.
+           
+           // Neon glow effect for the hand skeleton
+           ctx.shadowBlur = 15;
+           ctx.shadowColor = '#00e5ff';
+           ctx.lineWidth = 4;
+           ctx.lineCap = 'round';
+           ctx.lineJoin = 'round';
+
+           const connections = [
+             // Thumb
+             [0, 1], [1, 2], [2, 3], [3, 4],
+             // Index
+             [0, 5], [5, 6], [6, 7], [7, 8],
+             // Middle
+             [9, 10], [10, 11], [11, 12],
+             // Ring
+             [13, 14], [14, 15], [15, 16],
+             // Pinky
+             [0, 17], [17, 18], [18, 19], [19, 20],
+             // Palm
+             [5, 9], [9, 13], [13, 17]
+           ];
+
+           // Draw connectors manually for maximum control and reliability
+           connections.forEach(([i, j]) => {
+             const p1 = landmarks[i];
+             const p2 = landmarks[j];
+             ctx.beginPath();
+             ctx.moveTo(p1.x * canvas.width, p1.y * canvas.height);
+             ctx.lineTo(p2.x * canvas.width, p2.y * canvas.height);
+             
+             const grad = ctx.createLinearGradient(
+                p1.x * canvas.width, p1.y * canvas.height,
+                p2.x * canvas.width, p2.y * canvas.height
+             );
+             grad.addColorStop(0, '#00e5ff');
+             grad.addColorStop(1, '#7000ff');
+             ctx.strokeStyle = grad;
+             ctx.stroke();
+           });
+
+           // Draw landmarks (joints)
+           landmarks.forEach((lm, i) => {
+             const x = lm.x * canvas.width;
+             const y = lm.y * canvas.height;
+             
+             ctx.beginPath();
+             ctx.arc(x, y, i % 4 === 0 ? 5 : 3, 0, Math.PI * 2);
+             ctx.fillStyle = i % 4 === 0 ? '#fff' : '#00e5ff';
+             ctx.fill();
+             
+             // Extra outer ring for fingertips
+             if (i === 4 || i === 8 || i === 12 || i === 16 || i === 20) {
+                ctx.beginPath();
+                ctx.arc(x, y, 8 + Math.sin(Date.now() / 200) * 3, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(0, 229, 255, 0.4)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+             }
+           });
+           
+           // Highlight the "pinch" fingers (Thumb and Index) with a high-energy line
+           const thumb = landmarks[4];
+           const index = landmarks[8];
+           const tx = thumb.x * canvas.width;
+           const ty = thumb.y * canvas.height;
+           const ix = index.x * canvas.width;
+           const iy = index.y * canvas.height;
+           
+           ctx.beginPath();
+           ctx.moveTo(tx, ty);
+           ctx.lineTo(ix, iy);
+           
+           const pinchGrad = ctx.createLinearGradient(tx, ty, ix, iy);
+           pinchGrad.addColorStop(0, '#00e5ff');
+           pinchGrad.addColorStop(0.5, '#ff00ff');
+           pinchGrad.addColorStop(1, '#00e5ff');
+           
+           ctx.strokeStyle = pinchGrad;
+           ctx.lineWidth = 3;
+           ctx.setLineDash([5, 5]);
+           ctx.stroke();
+           ctx.setLineDash([]);
+           
+           // Particle effect between pinch fingers
+           if (pinchDist < (isPinching.current ? PINCH_RELEASE_THRESHOLD : PINCH_GRAB_THRESHOLD)) {
+              for(let i=0; i<3; i++) {
+                const r = Math.random();
+                ctx.beginPath();
+                ctx.arc(tx + (ix-tx)*r + (Math.random()-0.5)*10, ty + (iy-ty)*r + (Math.random()-0.5)*10, Math.random()*3, 0, Math.PI*2);
+                ctx.fillStyle = '#ff00ff';
+                ctx.fill();
+              }
+           }
+           
+           ctx.restore();
         }
         const activeThreshold = isPinching.current ? PINCH_RELEASE_THRESHOLD : PINCH_GRAB_THRESHOLD;
-        ctx.beginPath(); ctx.arc(handPos.x, handPos.y, 20, 0, Math.PI * 2); ctx.strokeStyle = pinchDist < activeThreshold ? '#66bb6a' : '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+        if (handPos) {
+          ctx.beginPath(); 
+          ctx.arc(handPos.x, handPos.y, 20, 0, Math.PI * 2); 
+          ctx.strokeStyle = pinchDist < activeThreshold ? '#66bb6a' : '#ffffff'; 
+          ctx.lineWidth = 2; 
+          ctx.stroke();
+        }
       } else {
         // Hand lost - use buffer
         if (handLostFramesRef.current < MAX_LOST_FRAMES && smoothedHandPosRef.current) {
@@ -793,7 +924,7 @@ const PrismShot: React.FC = () => {
       
       if (gameStateRef.current === 'PLAYING' && !showTutorialRef.current) {
           const activeThreshold = isPinching.current ? PINCH_RELEASE_THRESHOLD : PINCH_GRAB_THRESHOLD;
-          if (handPos && pinchDist < activeThreshold && !isFlying.current) {
+          if (playMode === 'IA' && handPos && pinchDist < activeThreshold && !isFlying.current) {
             const distToBall = Math.sqrt(Math.pow(handPos.x - ballPos.current.x, 2) + Math.pow(handPos.y - ballPos.current.y, 2));
             if (!isPinching.current && distToBall < 100) isPinching.current = true;
             if (isPinching.current) {
@@ -802,7 +933,7 @@ const PrismShot: React.FC = () => {
                 if (dragDist > maxDragDist) { const angle = Math.atan2(dragDy, dragDx); ballPos.current.x = anchorPos.current.x + Math.cos(angle) * maxDragDist; ballPos.current.y = anchorPos.current.y + Math.sin(angle) * maxDragDist; }
             }
           } 
-          else if (isPinching.current && (!handPos || pinchDist >= PINCH_RELEASE_THRESHOLD)) {
+          else if (playMode === 'IA' && isPinching.current && (!handPos || pinchDist >= PINCH_RELEASE_THRESHOLD)) {
             isPinching.current = false; const dx = anchorPos.current.x - ballPos.current.x; const dy = anchorPos.current.y - ballPos.current.y; const stretchDist = Math.sqrt(dx*dx + dy*dy);
             if (stretchDist > 30) {
                 isFlying.current = true; playSound('shoot'); flightStartTime.current = performance.now();
@@ -1117,45 +1248,249 @@ const PrismShot: React.FC = () => {
     let isProcessing = false;
     let isUnmounted = false;
 
-    if (window.Hands) {
-      hands = new window.Hands({ locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
-      hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
-      hands.onResults(onResults);
-      if (window.Camera) {
-        camera = new window.Camera(video, { 
-          onFrame: async () => { 
-            if (isUnmounted || isProcessing) return;
-            const currentVideo = videoRef.current;
-            if (currentVideo && currentVideo.readyState >= 3 && currentVideo.videoWidth > 0 && currentVideo.videoHeight > 0 && hands) {
-              try {
-                isProcessing = true;
-                await hands.send({ image: currentVideo });
-              } catch (err) {
-                console.error("Hands processing error:", err);
-                // If it's a fatal error, we might need to recreate hands, but let's try just catching it first.
-              } finally {
-                isProcessing = false;
-              }
-            } 
-          }, 
-          width: 1280, 
-          height: 720 
-        });
-        
-        camera.start().catch((err: any) => {
-          console.error("Camera failed to start:", err);
-          setCameraError(err.message || "Permission denied");
-          setLoading(false);
-        });
-      }
+    if (!window.navigator.mediaDevices) {
+      setCameraError("Your browser doesn't support camera access or you are in a non-secure (HTTP) context.");
+      setLoading(false);
+      return;
     }
+
+    // Safety timeout: if loading takes too long
+    const safetyTimeout = setTimeout(() => {
+        if (loading && !cameraError && !isUnmounted) {
+            console.warn("Camera initialization is taking longer than expected...");
+            setCameraError("A inicialização está demorando mais que o esperado. Isso geralmente acontece quando o navegador bloqueia a câmera ou quando os modelos de IA são pesados.");
+            setLoading(false);
+        }
+    }, 12000); // Increased to 12s for slower connections
+
+    const initAll = async () => {
+        setLoading(true);
+        if (!window.Hands) {
+            // Wait a bit and retry if scripts haven't loaded
+            setTimeout(initAll, 500);
+            return;
+        }
+
+        try {
+            hands = new window.Hands({ 
+                locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${file}` 
+            });
+            hands.setOptions({ 
+                maxNumHands: 1, 
+                modelComplexity: 0, // Lite model for faster web performance
+                minDetectionConfidence: 0.45, 
+                minTrackingConfidence: 0.45 
+            });
+            hands.onResults((results: any) => {
+                if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                    // Quick check to see if we get ANY results
+                    if (handLostFramesRef.current > 0) {
+                        console.log("Hand detected!");
+                    }
+                }
+                onResults(results);
+            });
+
+            const video = videoRef.current;
+            if (!video) return;
+
+            let stream: MediaStream;
+            try {
+                // First attempt with preferred constraints
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" } 
+                });
+            } catch (e) {
+                console.warn("Standard constraints failed, trying fallback", e);
+                // Fallback to any video
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            }
+
+            if (isUnmounted) {
+                stream.getTracks().forEach(t => t.stop());
+                return;
+            }
+
+            video.srcObject = stream;
+            // Safari/iOS requires play() to be called
+            try {
+                await video.play();
+            } catch (playErr) {
+                console.error("Video play failed:", playErr);
+            }
+
+            // Successfully started video
+            setLoading(false);
+            setCameraError(null);
+
+            const loop = async () => {
+                if (isUnmounted || !hands || !video) return;
+                
+                // Process frame if video is ready
+                if (video.videoWidth > 0 && video.readyState >= 2 && !isProcessing) {
+                    try {
+                        isProcessing = true;
+                        await hands.send({ image: video });
+                    } catch (err) {
+                        console.error("Hands send error:", err);
+                    } finally {
+                        isProcessing = false;
+                    }
+                }
+                
+                if (!isUnmounted) {
+                    // Use requestVideoFrameCallback if available for smoother tracking
+                    if ('requestVideoFrameCallback' in video) {
+                        (video as any).requestVideoFrameCallback(loop);
+                    } else {
+                        requestAnimationFrame(loop);
+                    }
+                }
+            };
+            loop();
+
+        } catch (err: any) {
+            console.error("Critical camera setup error:", err);
+            let msg = err.message || "Erro desconhecido";
+            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                msg = "Permissão de câmera negada pelo usuário ou pelo navegador.";
+            } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                msg = "Nenhuma câmera encontrada no seu dispositivo.";
+            } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                msg = "A câmera já está sendo usada por outro aplicativo.";
+            }
+            
+            if (window.self !== window.top) {
+                msg = "Acesso à câmera bloqueado por estar dentro de um iframe. Por favor, use o botão 'Abrir em Nova Aba' abaixo.";
+            }
+            
+            setCameraError(msg);
+            setLoading(false);
+        }
+    };
+
+    if (hasStarted) {
+        if (playMode === 'IA') {
+            initAll();
+        } else {
+            // Manual loop for non-AI mode
+            const manualLoop = () => {
+                if (isUnmounted || playMode !== 'MANUAL') return;
+                onResults({});
+                requestAnimationFrame(manualLoop);
+            };
+            manualLoop();
+        }
+    }
+
     return () => { 
+      clearTimeout(safetyTimeout);
       isUnmounted = true;
-      if (camera) camera.stop(); 
-      if (hands) hands.close(); 
+      if (hands) (hands as any).close(); 
+      if (videoRef.current?.srcObject) {
+          const stream = videoRef.current.srcObject as MediaStream;
+          stream.getTracks().forEach(track => track.stop());
+      }
       if (resizeObserver) resizeObserver.disconnect();
     };
-  }, [cameraRetryCount]);
+  }, [cameraRetryCount, hasStarted, playMode]);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (gameStateRef.current !== 'PLAYING' || isFlying.current) return;
+    initAudio();
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    let x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Correct for mirrored canvas (CSS scaleX(-1))
+    if (canvasRef.current) {
+        x = canvasRef.current.width - x;
+    }
+    
+    if (playMode === 'MANUAL') {
+      isPinching.current = true;
+      // Mirror the drag for manual mode so pointing at target pulls slingshot back
+      const dx = x - anchorPos.current.x;
+      const dy = y - anchorPos.current.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const angle = Math.atan2(dy, dx);
+      const pullDist = Math.min(dist, layoutRef.current.maxDragDist);
+      
+      ballPos.current.x = anchorPos.current.x - Math.cos(angle) * pullDist;
+      ballPos.current.y = anchorPos.current.y - Math.sin(angle) * pullDist;
+      return;
+    }
+
+    const distToBall = Math.sqrt(Math.pow(x - ballPos.current.x, 2) + Math.pow(y - ballPos.current.y, 2));
+    if (distToBall < 100) {
+      isPinching.current = true;
+      ballPos.current = { x, y };
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isPinching.current || isFlying.current) return;
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    let x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Correct for mirrored canvas (CSS scaleX(-1))
+    if (canvasRef.current) {
+        x = canvasRef.current.width - x;
+    }
+    
+    if (playMode === 'MANUAL') {
+      const dx = x - anchorPos.current.x;
+      const dy = y - anchorPos.current.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const angle = Math.atan2(dy, dx);
+      const pullDist = Math.min(dist, layoutRef.current.maxDragDist);
+      
+      ballPos.current.x = anchorPos.current.x - Math.cos(angle) * pullDist;
+      ballPos.current.y = anchorPos.current.y - Math.sin(angle) * pullDist;
+      return;
+    }
+
+    const dragDx = x - anchorPos.current.x;
+    const dragDy = y - anchorPos.current.y;
+    const dragDist = Math.sqrt(dragDx * dragDx + dragDy * dragDy);
+    
+    if (dragDist > layoutRef.current.maxDragDist) {
+      const angle = Math.atan2(dragDy, dragDx);
+      ballPos.current.x = anchorPos.current.x + Math.cos(angle) * layoutRef.current.maxDragDist;
+      ballPos.current.y = anchorPos.current.y + Math.sin(angle) * layoutRef.current.maxDragDist;
+    } else {
+      ballPos.current = { x, y };
+    }
+  };
+
+  const handlePointerUp = () => {
+    if (!isPinching.current || isFlying.current) return;
+    isPinching.current = false;
+    const dx = anchorPos.current.x - ballPos.current.x;
+    const dy = anchorPos.current.y - ballPos.current.y;
+    const stretchDist = Math.sqrt(dx * dx + dy * dy);
+    
+    if (stretchDist > 30) {
+      isFlying.current = true;
+      playSound('shoot');
+      flightStartTime.current = performance.now();
+      recoilRef.current = 25;
+      const powerRatio = Math.min(stretchDist / layoutRef.current.maxDragDist, 1.0);
+      let velocityMultiplier = MIN_FORCE_MULT + (MAX_FORCE_MULT - MIN_FORCE_MULT) * (powerRatio * powerRatio);
+      
+      // Reduce speed for manual mode as requested by user
+      if (playMode === 'MANUAL') {
+        velocityMultiplier *= 0.4; // 60% reduction for even smoother touch control
+      }
+      
+      ballVel.current = { x: dx * velocityMultiplier, y: dy * velocityMultiplier };
+    } else {
+      ballPos.current = { ...anchorPos.current };
+    }
+  };
 
   return (
     <div className="fixed inset-0 flex flex-col md:flex-row w-full h-[100dvh] bg-[#121212] overflow-hidden font-roboto text-[#e3e3e3] select-none">
@@ -1163,15 +1498,95 @@ const PrismShot: React.FC = () => {
       {/* LEFT: GAME AREA */}
       <div ref={gameContainerRef} className="flex-1 relative overflow-hidden bg-black/40 order-1 md:order-1">
         <video ref={videoRef} className="absolute opacity-0 pointer-events-none" playsInline muted />
-        <canvas ref={canvasRef} className="absolute inset-0 z-10 touch-none" />
+        <canvas 
+            ref={canvasRef} 
+            className="absolute inset-0 z-10 touch-none cursor-crosshair" 
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerUp}
+        />
         <canvas ref={fxCanvasRef} className="absolute inset-0 z-[100] pointer-events-none touch-none" />
+
+        {!hasStarted && (
+            <div className="absolute inset-0 flex items-center justify-center bg-[#121212] z-[100] animate-in fade-in duration-500">
+                <div className="bg-[#1e1e1e] p-8 md:p-10 rounded-[40px] border border-[#444746] shadow-2xl max-w-md w-full text-center m-4 overflow-hidden relative group">
+                    <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#42a5f5]/10 rounded-full blur-3xl group-hover:bg-[#42a5f5]/20 transition-all duration-700" />
+                    <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl group-hover:bg-purple-500/20 transition-all duration-700" />
+                    
+                    <div className="relative z-10">
+                        <div className="w-20 h-20 bg-gradient-to-tr from-[#42a5f5] to-purple-500 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-[#42a5f5]/20 rotate-3 group-hover:rotate-6 transition-transform">
+                            <CameraIcon className="w-10 h-10 text-white" />
+                        </div>
+                        
+                        <h1 className="text-4xl font-black text-white mb-2 tracking-tight">Prism Shot</h1>
+                        <p className="text-[#c4c7c5] text-sm mb-10 leading-relaxed max-w-[280px] mx-auto">
+                            Experimente o controle por gestos com IA ou jogue da forma clássica.
+                        </p>
+                        
+                        <div className="space-y-4">
+                            <button 
+                                onClick={() => {
+                                    setPlayMode('IA');
+                                    setHasStarted(true);
+                                }}
+                                className="w-full py-5 bg-[#42a5f5] hover:bg-[#29b6f6] text-black rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-[#42a5f5]/20"
+                            >
+                                <Hand className="w-6 h-6 animate-pulse" />
+                                JOGAR COM IA
+                            </button>
+                            
+                            <button 
+                                onClick={() => {
+                                    setPlayMode('MANUAL'); // Renamed from MOUSE for clarity
+                                    setHasStarted(true);
+                                }}
+                                className="w-full py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold flex items-center justify-center gap-3 transition-all border border-white/10 hover:border-white/20"
+                            >
+                                <MousePointerClick className="w-5 h-5 opacity-60" />
+                                JOGAR COM TOQUE / MOUSE
+                            </button>
+                        </div>
+                        
+                        <div className="mt-10 flex items-center justify-center gap-4 text-[10px] text-[#c4c7c5]/40 font-bold uppercase tracking-widest">
+                            <div className="h-px w-8 bg-current" />
+                            REQUER CÂMERA PARA IA
+                            <div className="h-px w-8 bg-current" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
 
         {loading && (
             <div className="absolute inset-0 flex items-center justify-center bg-[#121212] z-50">
-            <div className="flex flex-col items-center">
-                <Loader2 className="w-12 h-12 text-[#42a5f5] animate-spin mb-4" />
-                <p className="text-[#e3e3e3] text-lg font-medium">Initializing Camera...</p>
-            </div>
+                <div className="flex flex-col items-center max-w-xs text-center px-6">
+                    <Loader2 className="w-12 h-12 text-[#42a5f5] animate-spin mb-4" />
+                    <p className="text-[#e3e3e3] text-lg font-medium mb-2">Iniciando IA de Reconhecimento...</p>
+                    <p className="text-[#c4c7c5] text-xs mb-4">Isso pode levar alguns segundos enquanto carregamos os modelos de visão.</p>
+                    
+                    {window.self !== window.top && (
+                        <div className="mb-6 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                            <p className="text-[10px] text-blue-400 leading-tight">
+                                <b>Nota:</b> Você está jogando dentro de uma janela. Se a câmera não abrir, use o botão "Abrir em Nova Aba" no menu ou abaixo.
+                            </p>
+                        </div>
+                    )}
+                    
+                    <button 
+                        onClick={() => {
+                            setPlayMode('MANUAL');
+                            setLoading(false);
+                        }}
+                        className="px-6 py-2 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white rounded-full text-xs font-medium transition-all border border-white/10"
+                    >
+                        Pular e Jogar com Mouse
+                    </button>
+                    
+                    <p className="mt-4 text-[10px] text-[#c4c7c5]/50 italic text-center">
+                        Dica: Se a câmera não iniciar, tente abrir em uma nova aba.
+                    </p>
+                </div>
             </div>
         )}
 
@@ -1181,29 +1596,73 @@ const PrismShot: React.FC = () => {
                     <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-6 mx-auto">
                         <AlertCircle className="w-8 h-8 text-red-500" />
                     </div>
-                    <h2 className="text-2xl font-bold text-white mb-3">Camera Access Denied</h2>
-                    <p className="text-[#c4c7c5] mb-8 leading-relaxed">
-                        The game needs camera access to track your hand movements. 
-                        Please ensure you have granted permission in your browser settings.
+                    <h2 className="text-2xl font-bold text-white mb-3">Problema na Câmera</h2>
+                    <p className="text-[#c4c7c5] mb-6 text-sm leading-relaxed">
+                        O Prism Shot usa gesto para mirar. O acesso à câmera pode estar bloqueado pelo navegador dentro desta janela.
                     </p>
                     <div className="flex flex-col gap-3">
                         <button 
-                            onClick={() => {
-                                setCameraError(null);
-                                setLoading(true);
-                                setCameraRetryCount(prev => prev + 1);
+                            onClick={async () => {
+                                try {
+                                    setCameraError(null);
+                                    setLoading(true);
+                                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                                    stream.getTracks().forEach(track => track.stop());
+                                    setCameraRetryCount(prev => prev + 1);
+                                } catch (err: any) {
+                                    console.error("Manual permission check failed:", err);
+                                    setCameraError(err.message || "Permissão negada");
+                                    setLoading(false);
+                                }
                             }}
-                            className="w-full py-3 bg-[#42a5f5] hover:bg-[#29b6f6] text-black rounded-xl font-bold flex items-center justify-center gap-2 transition-colors"
+                            className="w-full py-4 bg-[#42a5f5] hover:bg-[#29b6f6] text-black rounded-xl font-bold flex items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-lg shadow-[#42a5f5]/20"
                         >
-                            <CameraIcon className="w-5 h-5" /> Try Again
+                            <CameraIcon className="w-5 h-5" /> 1. Solicitar Permissão
                         </button>
-                        <p className="text-xs text-[#c4c7c5] mt-2">
-                            Error: {cameraError}
-                        </p>
+
+                        <button 
+                            onClick={() => {
+                                window.open(window.location.href, '_blank');
+                            }}
+                            className="w-full py-3 bg-[#c4c7c5] hover:bg-white text-black rounded-xl font-bold flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+                        >
+                            <Monitor className="w-5 h-5" /> 2. Abrir em Nova Aba (Recomendado)
+                        </button>
+
+                        <button 
+                            onClick={() => {
+                                setPlayMode('MANUAL');
+                                setCameraError(null);
+                                setLoading(false);
+                            }}
+                            className="w-full py-2 text-[#c4c7c5] hover:text-white text-xs font-medium transition-colors"
+                        >
+                            Continuar apenas com Mouse/Toque
+                        </button>
+                        
+                        <div className="mt-4 p-3 bg-black/40 rounded-xl text-left border border-white/5">
+                            <p className="text-[10px] text-red-400 font-mono font-bold uppercase mb-1">Diagnóstico:</p>
+                            <p className="text-[10px] text-[#c4c7c5] font-mono break-all">{cameraError}</p>
+                        </div>
                     </div>
                 </div>
             </div>
         )}
+
+        <div className="absolute bottom-6 left-6 z-40 flex flex-col gap-2 pointer-events-none">
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-md border transition-all duration-500 ${smoothedHandPosRef.current ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-white/5 border-white/10 text-white/40'}`}>
+                <div className={`w-2 h-2 rounded-full ${smoothedHandPosRef.current ? 'bg-green-500 animate-pulse' : 'bg-white/20'}`} />
+                <span className="text-[8px] font-bold uppercase tracking-wider opacity-80">
+                    {smoothedHandPosRef.current ? 'IA Ativa' : 'IA Off'}
+                </span>
+            </div>
+            {isPinching.current && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#42a5f5]/20 border border-[#42a5f5]/50 text-[#42a5f5] backdrop-blur-md animate-in zoom-in duration-200">
+                    <Sparkles className="w-3 h-3" />
+                    <span className="text-[8px] font-bold uppercase tracking-wider">Agarrado</span>
+                </div>
+            )}
+        </div>
 
         {!loading && (gameState === 'PLAYING' || gameState === 'PAUSED') && !showTutorial && (
             <button
