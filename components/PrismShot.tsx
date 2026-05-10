@@ -145,30 +145,207 @@ const adjustColor = (color: string, amount: number) => {
     return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
 };
 
-const TUTORIAL_STEPS = [
+const getTutorialSteps = (t: typeof translations['en']) => [
     {
-        title: "How to Aim & Shoot",
-        content: "Use your webcam! Pinch your thumb and index finger together to charge the cannon. Move your hand to aim, and release the pinch (open your fingers) to fire.",
-        icon: Hand
-    },
-    {
-        title: "Match Colors",
-        content: "Shoot bubbles to create groups of 3 or more of the same color. Matching bubbles will pop and give you points.",
+        title: t.tutorialTargetLine1,
+        content: `${t.tutorialTargetLine1} ${t.tutorialTargetLine2} ${t.tutorialTargetLine3}`,
         icon: Target
     },
     {
-        title: "Special Power-ups",
-        content: "Look for special icons! 💣 Bombs explode nearby bubbles, ❄️ Snowflakes freeze time, and 🌈 Rainbows match with any color.",
-        icon: Zap
+        title: "Webcam AI",
+        content: `${t.tutorialAiLine1} ${t.tutorialAiLine2}. ${t.tutorialAiLine3} ${t.tutorialAiLine4}.`,
+        icon: Hand
     },
     {
-        title: "Winning & Losing",
-        content: "Clear the bubbles to score high! If the bubbles reach the bottom line, the game is over. In Easy mode, bubbles won't move down automatically.",
-        icon: Trophy
+        title: "Manual",
+        content: `${t.tutorialManualLine1} ${t.tutorialManualLine2}.`,
+        icon: MousePointerClick
+    },
+    {
+        title: "Special Power-ups",
+        content: "💣 Bombs explode, ❄️ Snowflakes freeze time, 🌈 Rainbows match any color.",
+        icon: Zap
     }
 ];
 
+const translations = {
+  en: {
+    title: 'PRISM SHOT',
+    score: 'Score',
+    play: 'PLAY',
+    manualMode: 'MANUAL MODE',
+    aiMode: 'AI MODE (WEBCAM)',
+    aiBeta: 'AI Beta',
+    tutorialStart: 'START GAME',
+    allowCamera: 'Allow camera access to play',
+    requestCamera: 'Request Camera',
+    detectingHand: 'Detecting hand...',
+    cameraError: 'Camera Error',
+    retryCamera: 'Retry Camera',
+    continueHover: 'Hover to Continue',
+    gameOver: 'GAME OVER',
+    playAgain: 'PLAY AGAIN',
+    homeDescription: 'Experience AI gesture control or play the classic way.',
+    playWithAi: 'PLAY WITH AI',
+    playManual: 'PLAY WITH TOUCH / MOUSE',
+    requiresCamera: 'REQUIRES CAMERA FOR AI',
+    resume: 'Resume',
+    developedBy: 'Developed by Eleandro',
+    howToPlay: 'How to Play',
+    advertisement: 'Advertisement',
+    mainMenu: 'Main Menu',
+    help: 'Help',
+    back: 'Back',
+    letsPlay: "Let's Play!",
+    congratulations: 'Congratulations!',
+    youAreTheBest: 'You are the best!',
+    style: 'Style',
+    paused: 'Paused',
+    drop: 'drop',
+    startingRows: 'starting rows',
+    noAutoDrop: 'No auto drop',
+    pts: 'PTS',
+    cameraInUse: 'Camera is already in use by another application.',
+    cameraIframe: 'Camera access blocked inside iframe. Please open in a new tab.',
+    tutorialTargetLine1: 'Aim for groups',
+    tutorialTargetLine2: 'of 3 or more',
+    tutorialTargetLine3: 'matching colors',
+    tutorialAiLine1: 'Pinch thumb & index',
+    tutorialAiLine2: 'to grab the ball',
+    tutorialAiLine3: 'Pull back & release',
+    tutorialAiLine4: 'to shoot',
+    tutorialManualLine1: 'Touch and drag',
+    tutorialManualLine2: 'to aim and shoot',
+    winMessage: 'YOU WIN!',
+    finalScore: 'Final Score',
+    victoryScore: 'Victory Score',
+    easy: 'Easy',
+    medium: 'Medium',
+    hard: 'Hard'
+  },
+  pt: {
+    title: 'PRISM SHOT',
+    score: 'Pontos',
+    play: 'JOGAR',
+    manualMode: 'MODO MANUAL',
+    aiMode: 'MODO IA (WEBCAM)',
+    aiBeta: 'IA Beta',
+    tutorialStart: 'INICIAR JOGO',
+    allowCamera: 'Permita acesso à câmera para jogar',
+    requestCamera: 'Solicitar Câmera',
+    detectingHand: 'Detectando mão...',
+    cameraError: 'Erro na Câmera',
+    retryCamera: 'Tentar Novamente',
+    continueHover: 'Passe o mouse para continuar',
+    gameOver: 'FIM DE JOGO',
+    playAgain: 'JOGAR NOVAMENTE',
+    homeDescription: 'Experimente o controle por gestos com IA ou jogue da forma clássica.',
+    playWithAi: 'JOGAR COM IA',
+    playManual: 'JOGAR COM TOQUE / MOUSE',
+    requiresCamera: 'REQUER CÂMERA PARA IA',
+    resume: 'Retomar',
+    developedBy: 'Desenvolvido por Eleandro',
+    howToPlay: 'Como Jogar',
+    advertisement: 'Publicidade',
+    mainMenu: 'Menu Principal',
+    help: 'Ajuda',
+    back: 'Voltar',
+    letsPlay: "Vamos Jogar!",
+    congratulations: 'Parabéns!',
+    youAreTheBest: 'Você é o melhor!',
+    style: 'Estilo',
+    paused: 'Pausado',
+    drop: 'queda',
+    startingRows: 'linhas iniciais',
+    noAutoDrop: 'Sem queda auto',
+    pts: 'PTS',
+    cameraInUse: 'A câmera já está sendo usada por outro aplicativo.',
+    cameraIframe: 'Acesso à câmera bloqueado no iframe. Por favor, abra em uma nova aba.',
+    tutorialTargetLine1: 'Mire em grupos',
+    tutorialTargetLine2: 'de 3 ou mais',
+    tutorialTargetLine3: 'cores iguais',
+    tutorialAiLine1: 'Junte polegar e indicador',
+    tutorialAiLine2: 'para segurar a bola',
+    tutorialAiLine3: 'Puxe para trás e solte',
+    tutorialAiLine4: 'para atirar',
+    tutorialManualLine1: 'Toque e arraste',
+    tutorialManualLine2: 'para mirar e atirar',
+    winMessage: 'VOCÊ VENCEU!',
+    finalScore: 'Pontuação Final',
+    victoryScore: 'Pontuação',
+    easy: 'Fácil',
+    medium: 'Médio',
+    hard: 'Difícil'
+  },
+  es: {
+    title: 'PRISM SHOT',
+    score: 'Puntos',
+    play: 'JUGAR',
+    manualMode: 'MODO MANUAL',
+    aiMode: 'MODO IA (CÁMARA)',
+    aiBeta: 'IA Beta',
+    tutorialStart: 'INICIAR JUEGO',
+    allowCamera: 'Permite acceso a la cámara para jugar',
+    requestCamera: 'Solicitar Cámara',
+    detectingHand: 'Detectando mano...',
+    cameraError: 'Error de Cámara',
+    retryCamera: 'Reintentar',
+    continueHover: 'Pasa el ratón para continuar',
+    gameOver: 'FIN DEL JUEGO',
+    playAgain: 'JUGAR DE NUEVO',
+    homeDescription: 'Experimenta el control por gestos con IA o juega de forma clásica.',
+    playWithAi: 'JUGAR CON IA',
+    playManual: 'JUGAR CON TOQUE / RATÓN',
+    requiresCamera: 'REQUIERE CÁMARA PARA IA',
+    resume: 'Reanudar',
+    developedBy: 'Desarrollado por Eleandro',
+    howToPlay: 'Cómo Jugar',
+    advertisement: 'Publicidad',
+    mainMenu: 'Menú Principal',
+    help: 'Ayuda',
+    back: 'Atrás',
+    letsPlay: "¡A Jugar!",
+    congratulations: '¡Felicidades!',
+    youAreTheBest: '¡Eres el mejor!',
+    style: 'Estilo',
+    paused: 'Pausado',
+    drop: 'caída',
+    startingRows: 'filas iniciales',
+    noAutoDrop: 'Sin caída auto',
+    pts: 'PTS',
+    cameraInUse: 'La cámara ya está en uso por otra aplicación.',
+    cameraIframe: 'Acceso a la cámara bloqueado en el iframe. Por favor, abre en una nueva pestaña.',
+    tutorialTargetLine1: 'Apunta a grupos',
+    tutorialTargetLine2: 'de 3 o más',
+    tutorialTargetLine3: 'colores iguales',
+    tutorialAiLine1: 'Junta pulgar e índice',
+    tutorialAiLine2: 'para agarrar la bola',
+    tutorialAiLine3: 'Jala hacia atrás y suelta',
+    tutorialAiLine4: 'para disparar',
+    tutorialManualLine1: 'Toca y arrastra',
+    tutorialManualLine2: 'para apuntar y disparar',
+    winMessage: '¡HAS GANADO!',
+    finalScore: 'Puntaje Final',
+    victoryScore: 'Puntuación',
+    easy: 'Fácil',
+    medium: 'Medio',
+    hard: 'Dificil'
+  }
+};
+
 const PrismShot: React.FC = () => {
+  const [lang, setLang] = useState<'en' | 'pt' | 'es'>('en');
+
+  useEffect(() => {
+    const browserLang = navigator.language.split('-')[0];
+    if (['pt', 'en', 'es'].includes(browserLang)) {
+      setLang(browserLang as 'en' | 'pt' | 'es');
+    }
+  }, []);
+
+  const t = translations[lang] || translations.en;
+  const tutorialSteps = getTutorialSteps(t);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fxCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -541,7 +718,7 @@ const PrismShot: React.FC = () => {
 
   const nextTutorialStep = () => {
     playSound('click');
-    if (tutorialStep < TUTORIAL_STEPS.length - 1) {
+    if (tutorialStep < tutorialSteps.length - 1) {
       setTutorialStep(prev => prev + 1);
     } else {
       setShowTutorial(false);
@@ -1364,7 +1541,7 @@ const PrismShot: React.FC = () => {
                 msg = "Acesso à câmera bloqueado por estar dentro de um iframe. Por favor, use o botão 'Abrir em Nova Aba' abaixo.";
             }
             
-            setCameraError(msg);
+            setCameraError(err.message || t.cameraError);
             setLoading(false);
         }
     };
@@ -1521,7 +1698,7 @@ const PrismShot: React.FC = () => {
                         
                         <h1 className="text-4xl font-black text-white mb-2 tracking-tight">Prism Shot</h1>
                         <p className="text-[#c4c7c5] text-sm mb-10 leading-relaxed max-w-[280px] mx-auto">
-                            Experimente o controle por gestos com IA ou jogue da forma clássica.
+                            {t.homeDescription}
                         </p>
                         
                         <div className="space-y-4">
@@ -1533,7 +1710,7 @@ const PrismShot: React.FC = () => {
                                 className="w-full py-5 bg-[#42a5f5] hover:bg-[#29b6f6] text-black rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-[#42a5f5]/20"
                             >
                                 <Hand className="w-6 h-6 animate-pulse" />
-                                JOGAR COM IA
+                                {t.playWithAi}
                             </button>
                             
                             <button 
@@ -1544,13 +1721,13 @@ const PrismShot: React.FC = () => {
                                 className="w-full py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold flex items-center justify-center gap-3 transition-all border border-white/10 hover:border-white/20"
                             >
                                 <MousePointerClick className="w-5 h-5 opacity-60" />
-                                JOGAR COM TOQUE / MOUSE
+                                {t.playManual}
                             </button>
                         </div>
                         
                         <div className="mt-10 flex items-center justify-center gap-4 text-[10px] text-[#c4c7c5]/40 font-bold uppercase tracking-widest">
                             <div className="h-px w-8 bg-current" />
-                            REQUER CÂMERA PARA IA
+                            {t.requiresCamera}
                             <div className="h-px w-8 bg-current" />
                         </div>
                     </div>
@@ -1676,9 +1853,9 @@ const PrismShot: React.FC = () => {
         {gameState === 'PAUSED' && (
              <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 animate-in fade-in duration-200">
                  <div className="bg-[#1e1e1e] p-8 rounded-[32px] border border-[#444746] shadow-2xl text-center">
-                     <h2 className="text-3xl font-bold text-white mb-6 tracking-tight">Paused</h2>
+                     <h2 className="text-3xl font-bold text-white mb-6 tracking-tight">{t.paused}</h2>
                      <button onClick={togglePause} className="w-full py-3 px-8 bg-[#42a5f5] hover:bg-[#29b6f6] text-black rounded-xl font-bold flex items-center justify-center gap-2 transition-colors">
-                         <Play className="w-5 h-5 fill-current" /> Resume
+                         <Play className="w-5 h-5 fill-current" /> {t.resume}
                      </button>
                  </div>
              </div>
@@ -1689,13 +1866,13 @@ const PrismShot: React.FC = () => {
                 <div className="bg-[#1e1e1e] p-6 md:p-8 rounded-[32px] border border-[#444746] shadow-2xl max-w-md w-full mx-4 relative">
                     <button onClick={skipTutorial} className="absolute top-4 right-4 p-2 text-[#c4c7c5] hover:text-white hover:bg-[#2d2d2d] rounded-full transition-colors"><X className="w-5 h-5" /></button>
                     <div className="flex flex-col items-center text-center">
-                        <div className="w-16 h-16 bg-[#42a5f5]/20 rounded-full flex items-center justify-center mb-6"> {React.createElement(TUTORIAL_STEPS[tutorialStep].icon, { className: "w-8 h-8 text-[#42a5f5]" })} </div>
-                        <h2 className="text-2xl font-bold text-white mb-3">{TUTORIAL_STEPS[tutorialStep].title}</h2>
-                        <p className="text-[#c4c7c5] mb-8 leading-relaxed">{TUTORIAL_STEPS[tutorialStep].content}</p>
-                        <div className="flex gap-2 mb-6"> {TUTORIAL_STEPS.map((_, idx) => ( <div key={idx} className={`w-2 h-2 rounded-full transition-all duration-300 ${idx === tutorialStep ? 'w-6 bg-[#42a5f5]' : 'bg-[#444746]'}`} /> ))} </div>
+                        <div className="w-16 h-16 bg-[#42a5f5]/20 rounded-full flex items-center justify-center mb-6"> {React.createElement(tutorialSteps[tutorialStep].icon, { className: "w-8 h-8 text-[#42a5f5]" })} </div>
+                        <h2 className="text-2xl font-bold text-white mb-3">{tutorialSteps[tutorialStep].title}</h2>
+                        <p className="text-[#c4c7c5] mb-8 leading-relaxed">{tutorialSteps[tutorialStep].content}</p>
+                        <div className="flex gap-2 mb-6"> {tutorialSteps.map((_, idx) => ( <div key={idx} className={`w-2 h-2 rounded-full transition-all duration-300 ${idx === tutorialStep ? 'w-6 bg-[#42a5f5]' : 'bg-[#444746]'}`} /> ))} </div>
                         <div className="flex w-full gap-3">
-                            {tutorialStep > 0 && <button onClick={prevTutorialStep} className="flex-1 py-3 bg-[#2d2d2d] hover:bg-[#3d3d3d] text-white rounded-xl font-bold transition-colors">Back</button>}
-                            <button onClick={nextTutorialStep} className="flex-1 py-3 bg-[#42a5f5] hover:bg-[#29b6f6] text-black rounded-xl font-bold flex items-center justify-center gap-2 transition-colors"> {tutorialStep === TUTORIAL_STEPS.length - 1 ? "Let's Play!" : "Next"} {tutorialStep < TUTORIAL_STEPS.length - 1 && <ArrowRight className="w-4 h-4" />} </button>
+                            {tutorialStep > 0 && <button onClick={prevTutorialStep} className="flex-1 py-3 bg-[#2d2d2d] hover:bg-[#3d3d3d] text-white rounded-xl font-bold transition-colors">{t.back}</button>}
+                            <button onClick={nextTutorialStep} className="flex-1 py-3 bg-[#42a5f5] hover:bg-[#29b6f6] text-black rounded-xl font-bold flex items-center justify-center gap-2 transition-colors"> {tutorialStep === tutorialSteps.length - 1 ? t.letsPlay : t.play} {tutorialStep < tutorialSteps.length - 1 && <ArrowRight className="w-4 h-4" />} </button>
                         </div>
                     </div>
                 </div>
@@ -1712,7 +1889,7 @@ const PrismShot: React.FC = () => {
                       rel="noopener noreferrer" 
                       className="text-[#42a5f5] hover:underline mb-8 text-sm block flex items-center justify-center gap-2"
                     >
-                      <Linkedin className="w-4 h-4" /> Developed by Eleandro
+                      <Linkedin className="w-4 h-4" /> {t.developedBy}
                     </a>
                     <div className="space-y-4">
                         {(Object.keys(DIFFICULTY_SETTINGS) as Difficulty[]).map((key) => {
@@ -1721,13 +1898,13 @@ const PrismShot: React.FC = () => {
                                 <button key={key} onClick={() => startGame(key)} className="w-full flex items-center justify-between p-4 rounded-2xl border border-[#444746] hover:bg-[#2d2d2d] hover:border-[#a8c7fa] transition-all duration-200 group">
                                     <div className="flex items-center gap-4">
                                         <div className={`p-2 rounded-full bg-[${setting.color}]/20`} style={{ backgroundColor: `${setting.color}33` }}> <Icon className="w-6 h-6" style={{ color: setting.color }} /> </div>
-                                        <div className="text-left"> <p className="text-white font-bold text-lg">{setting.label}</p> <p className="text-[#c4c7c5] text-xs"> {setting.rows} starting rows • {key === 'easy' ? 'No auto drop' : `${setting.descentInterval / 1000}s drop`} </p> </div>
+                                        <div className="text-left"> <p className="text-white font-bold text-lg">{setting.label === "Easy" ? t.easy : setting.label === "Medium" ? t.medium : t.hard}</p> <p className="text-[#c4c7c5] text-xs"> {setting.rows} {t.startingRows} • {key === 'easy' ? t.noAutoDrop : `${setting.descentInterval / 1000}s ${t.drop}`} </p> </div>
                                     </div>
                                     <Play className="w-5 h-5 text-[#444746] group-hover:text-[#a8c7fa]" />
                                 </button>
                             );
                         })}
-                        <button onClick={() => { playSound('click'); setShowTutorial(true); setTutorialStep(0); }} className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl border border-[#444746] hover:bg-[#2d2d2d] text-[#c4c7c5] hover:text-white transition-all duration-200 mt-2"> <HelpCircle className="w-5 h-5" /> <span className="font-medium">How to Play</span> </button>
+                        <button onClick={() => { playSound('click'); setShowTutorial(true); setTutorialStep(0); }} className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl border border-[#444746] hover:bg-[#2d2d2d] text-[#c4c7c5] hover:text-white transition-all duration-200 mt-2"> <HelpCircle className="w-5 h-5" /> <span className="font-medium">{t.howToPlay}</span> </button>
                     </div>
                 </div>
             </div>
@@ -1737,10 +1914,10 @@ const PrismShot: React.FC = () => {
              <div className="absolute inset-0 flex items-center justify-center bg-[#121212]/90 backdrop-blur-md z-50 animate-in zoom-in duration-300">
                 <div className="bg-[#1e1e1e] p-8 rounded-[32px] border border-[#ef5350] shadow-2xl max-w-sm w-full text-center m-4 max-h-[90dvh] overflow-y-auto no-scrollbar">
                     <div className="w-20 h-20 bg-[#ef5350]/20 rounded-full flex items-center justify-center mx-auto mb-6"> <Trophy className="w-10 h-10 text-[#ef5350]" /> </div>
-                    <h2 className="text-3xl font-bold text-white mb-2">Game Over</h2>
-                    <div className="bg-[#2d2d2d] rounded-xl p-4 mb-8"> <p className="text-xs text-[#c4c7c5] uppercase tracking-wider font-bold mb-1">Final Score</p> <p className="text-4xl font-black text-white">{score.toLocaleString()}</p> </div>
-                    <button onClick={() => { initAudio(); playSound('click'); setGameState('MENU'); gameStateRef.current = 'MENU'; }} className="w-full py-4 bg-[#ef5350] hover:bg-[#e53935] text-white rounded-full font-bold text-lg flex items-center justify-center gap-2 transition-colors"> <RotateCcw className="w-5 h-5" /> Try Again </button>
-                    <a href="https://www.linkedin.com/in/eleandro-mangrich" target="_blank" rel="noopener noreferrer" className="mt-4 text-xs text-[#c4c7c5] hover:text-[#42a5f5] transition-colors flex items-center justify-center gap-1"> <Linkedin className="w-3 h-3" /> Developed by Eleandro </a>
+                    <h2 className="text-3xl font-bold text-white mb-2">{t.gameOver}</h2>
+                    <div className="bg-[#2d2d2d] rounded-xl p-4 mb-8"> <p className="text-xs text-[#c4c7c5] uppercase tracking-wider font-bold mb-1">{t.finalScore}</p> <p className="text-4xl font-black text-white">{score.toLocaleString()}</p> </div>
+                    <button onClick={() => { initAudio(); playSound('click'); setGameState('MENU'); gameStateRef.current = 'MENU'; }} className="w-full py-4 bg-[#ef5350] hover:bg-[#e53935] text-white rounded-full font-bold text-lg flex items-center justify-center gap-2 transition-colors"> <RotateCcw className="w-5 h-5" /> {t.playAgain} </button>
+                    <a href="https://www.linkedin.com/in/eleandro-mangrich" target="_blank" rel="noopener noreferrer" className="mt-4 text-xs text-[#c4c7c5] hover:text-[#42a5f5] transition-colors flex items-center justify-center gap-1"> <Linkedin className="w-3 h-3" /> {t.developedBy} </a>
                 </div>
              </div>
         )}
@@ -1749,11 +1926,11 @@ const PrismShot: React.FC = () => {
              <div className="absolute inset-0 flex items-center justify-center bg-[#121212]/60 backdrop-blur-md z-50 animate-in zoom-in duration-500">
                 <div className="bg-[#1e1e1e]/95 p-8 rounded-[32px] border border-[#66bb6a] shadow-[0_0_50px_rgba(102,187,106,0.3)] max-w-sm w-full text-center m-4 relative overflow-hidden max-h-[90dvh] overflow-y-auto no-scrollbar">
                     <div className="w-24 h-24 bg-[#66bb6a]/20 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce"> <Sparkles className="w-12 h-12 text-[#66bb6a]" /> </div>
-                    <h2 className="text-4xl font-black text-white mb-2 tracking-tight">Congratulations!</h2>
-                    <p className="text-xl font-bold text-[#42a5f5] mb-2">You are the best!</p>
-                    <div className="bg-[#2d2d2d] rounded-xl p-4 mb-8 border border-[#66bb6a]/30"> <p className="text-xs text-[#c4c7c5] uppercase tracking-wider font-bold mb-1">Victory Score</p> <p className="text-5xl font-black text-[#66bb6a]">{score.toLocaleString()}</p> </div>
-                    <button onClick={() => { initAudio(); playSound('click'); setGameState('MENU'); gameStateRef.current = 'MENU'; }} className="w-full py-4 bg-[#66bb6a] hover:bg-[#57a05b] text-white rounded-full font-bold text-lg flex items-center justify-center gap-2 transition-all hover:scale-105"> <RotateCcw className="w-5 h-5" /> Play Again </button>
-                    <a href="https://www.linkedin.com/in/eleandro-mangrich" target="_blank" rel="noopener noreferrer" className="mt-4 text-xs text-[#c4c7c5] hover:text-[#42a5f5] transition-colors flex items-center justify-center gap-1"> <Linkedin className="w-3 h-3" /> Developed by Eleandro </a>
+                    <h2 className="text-4xl font-black text-white mb-2 tracking-tight">{t.congratulations}</h2>
+                    <p className="text-xl font-bold text-[#42a5f5] mb-2">{t.youAreTheBest}</p>
+                    <div className="bg-[#2d2d2d] rounded-xl p-4 mb-8 border border-[#66bb6a]/30"> <p className="text-xs text-[#c4c7c5] uppercase tracking-wider font-bold mb-1">{t.victoryScore}</p> <p className="text-5xl font-black text-[#66bb6a]">{score.toLocaleString()}</p> </div>
+                    <button onClick={() => { initAudio(); playSound('click'); setGameState('MENU'); gameStateRef.current = 'MENU'; }} className="w-full py-4 bg-[#66bb6a] hover:bg-[#57a05b] text-white rounded-full font-bold text-lg flex items-center justify-center gap-2 transition-all hover:scale-105"> <RotateCcw className="w-5 h-5" /> {t.playAgain} </button>
+                    <a href="https://www.linkedin.com/in/eleandro-mangrich" target="_blank" rel="noopener noreferrer" className="mt-4 text-xs text-[#c4c7c5] hover:text-[#42a5f5] transition-colors flex items-center justify-center gap-1"> <Linkedin className="w-3 h-3" /> {t.developedBy} </a>
                 </div>
              </div>
         )}
@@ -1763,13 +1940,13 @@ const PrismShot: React.FC = () => {
       <div className="md:w-72 md:h-full md:border-l w-full h-auto border-t bg-[#1e1e1e] border-[#444746] flex flex-row md:flex-col z-20 shadow-2xl relative shrink-0 order-2 md:order-2">
           <div className="hidden md:block p-6 border-b border-[#444746]">
               <div className="flex items-center gap-3 mb-2"> <div className="p-2 bg-[#42a5f5]/20 rounded-lg"> <Target className="w-5 h-5 text-[#42a5f5]" /> </div> <h2 className="text-xl font-bold text-white tracking-tight leading-tight">PrismShot</h2> </div>
-              <a href="https://www.linkedin.com/in/eleandro-mangrich" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:opacity-80 transition-opacity mt-2"> <Linkedin className="w-4 h-4 text-[#0077b5]" /> <p className="text-[10px] text-[#c4c7c5] font-bold tracking-wider">DEVELOPED BY ELEANDRO</p> </a>
-              <div className="flex items-center justify-end mt-4"> <button onClick={() => { playSound('click'); setShowTutorial(true); setTutorialStep(0); }} className="p-2 bg-[#2d2d2d] rounded-lg text-[#c4c7c5] hover:text-[#42a5f5] hover:bg-[#3d3d3d] transition-all flex items-center gap-2 text-xs font-bold"> <HelpCircle className="w-4 h-4" /> Help </button> </div>
+              <a href="https://www.linkedin.com/in/eleandro-mangrich" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:opacity-80 transition-opacity mt-2"> <Linkedin className="w-4 h-4 text-[#0077b5]" /> <p className="text-[10px] text-[#c4c7c5] font-bold tracking-wider uppercase">{t.developedBy}</p> </a>
+              <div className="flex items-center justify-end mt-4"> <button onClick={() => { playSound('click'); setShowTutorial(true); setTutorialStep(0); }} className="p-2 bg-[#2d2d2d] rounded-lg text-[#c4c7c5] hover:text-[#42a5f5] hover:bg-[#3d3d3d] transition-all flex items-center gap-2 text-xs font-bold"> <HelpCircle className="w-4 h-4" /> {t.help} </button> </div>
           </div>
           <div className="flex-1 p-3 md:p-6 flex flex-row md:flex-col gap-4 md:gap-8 overflow-x-auto md:overflow-y-auto items-center md:items-stretch no-scrollbar">
               <div className="flex flex-col md:space-y-2 min-w-[80px]">
-                   <div className="hidden md:flex items-center justify-between"> <span className="text-xs text-[#c4c7c5] uppercase tracking-wider font-medium">Score</span> <Trophy className="w-4 h-4 text-[#ffd700]" /> </div>
-                   <div className="bg-transparent md:bg-[#2d2d2d] md:rounded-2xl md:p-4 md:border md:border-[#444746]"> <span className="text-xl md:text-3xl font-black text-white block"> <span className="md:hidden text-xs text-[#c4c7c5] mr-2">PTS</span> {score.toLocaleString()} </span> </div>
+                   <div className="hidden md:flex items-center justify-between"> <span className="text-xs text-[#c4c7c5] uppercase tracking-wider font-medium">{t.score}</span> <Trophy className="w-4 h-4 text-[#ffd700]" /> </div>
+                   <div className="bg-transparent md:bg-[#2d2d2d] md:rounded-2xl md:p-4 md:border md:border-[#444746]"> <span className="text-xl md:text-3xl font-black text-white block"> <span className="md:hidden text-xs text-[#c4c7c5] mr-2">{t.pts}</span> {score.toLocaleString()} </span> </div>
               </div>
               
               {/* AI HINT BUTTON */}
@@ -1850,7 +2027,7 @@ const PrismShot: React.FC = () => {
                   </div>
               </div>
               <div className="flex-1 md:flex-none space-y-0 md:space-y-2 flex flex-col justify-center">
-                  <div className="hidden md:flex items-center justify-between"> <span className="text-xs text-[#c4c7c5] uppercase tracking-wider font-medium">Style</span> <Palette className="w-3 h-3 text-[#c4c7c5]" /> </div>
+                  <div className="hidden md:flex items-center justify-between"> <span className="text-xs text-[#c4c7c5] uppercase tracking-wider font-medium">{t.style}</span> <Palette className="w-3 h-3 text-[#c4c7c5]" /> </div>
                   <div className="flex md:grid md:grid-cols-5 gap-2 overflow-x-auto pb-1 md:pb-0 px-1 items-center">
                       {(Object.values(HANDLE_THEMES)).map((theme) => ( <button key={theme.id} onClick={() => { playSound('click'); setHandleDesign(theme.id); }} className={`w-8 h-8 rounded-full border-2 transition-all duration-200 relative shrink-0 hover:scale-110`} style={{ backgroundColor: theme.handleColor, borderColor: handleDesign === theme.id ? theme.glowColor : '#444746', boxShadow: handleDesign === theme.id ? `0 0 10px ${theme.glowColor}` : 'none' }}> {handleDesign === theme.id && <div className="absolute inset-0 m-auto w-2 h-2 rounded-full bg-white animate-pulse" />} </button> ))}
                   </div>
@@ -1860,7 +2037,7 @@ const PrismShot: React.FC = () => {
           <div className="hidden md:block p-6 border-t border-[#444746] bg-[#1a1a1a]">
               {/* AdSense Placeholder */}
               <div className="mb-4 p-2 border border-dashed border-[#444746] rounded-lg text-center">
-                <p className="text-[10px] text-[#c4c7c5] uppercase mb-2">Advertisement</p>
+                <p className="text-[10px] text-[#c4c7c5] uppercase mb-2">{t.advertisement}</p>
                 <ins className="adsbygoogle"
                      style={{ display: 'block' }}
                      data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
@@ -1868,7 +2045,7 @@ const PrismShot: React.FC = () => {
                      data-ad-format="auto"
                      data-full-width-responsive="true"></ins>
               </div>
-              <button onClick={() => { playSound('click'); setGameState('MENU'); gameStateRef.current = 'MENU'; }} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#2d2d2d] hover:bg-[#3d3d3d] text-[#e3e3e3] text-sm font-bold transition-colors border border-[#444746]"> <MenuIcon className="w-4 h-4" /> Main Menu </button>
+              <button onClick={() => { playSound('click'); setGameState('MENU'); gameStateRef.current = 'MENU'; }} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#2d2d2d] hover:bg-[#3d3d3d] text-[#e3e3e3] text-sm font-bold transition-colors border border-[#444746]"> <MenuIcon className="w-4 h-4" /> {t.mainMenu} </button>
           </div>
       </div>
     </div>
